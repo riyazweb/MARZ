@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>MARS SIGNAL — Last Hope</title>
+    <title>MARZ — Last Hope</title>
     <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
     <style>
       body {
@@ -21,7 +21,6 @@
         justify-content: flex-end;
         align-items: center;
         z-index: 1002;
-        transition: opacity 1s ease-out;
       }
       #start-btn {
         margin-bottom: 80px;
@@ -39,6 +38,41 @@
       }
       #start-btn:hover { background: rgba(211,132,58,1); transform: scale(1.05); box-shadow: 0 0 30px rgba(211,132,58,0.6); }
 
+      /* ═══ CONTROLS / RULES SCREEN ═══ */
+      #controls-screen {
+        position: absolute;
+        width: 100%; height: 100%;
+        display: none;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        z-index: 1002;
+        background: #000;
+      }
+      #controls-screen img {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        object-fit: contain;
+      }
+      #continue-btn {
+        position: relative;
+        z-index: 1;
+        margin-bottom: 60px;
+        padding: 18px 60px;
+        background: rgba(211,132,58,0.85);
+        border: 2px solid rgba(255,255,255,0.5);
+        color: #fff;
+        font-family: 'Anton', sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 6px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      }
+      #continue-btn:hover { background: rgba(211,132,58,1); transform: scale(1.05); box-shadow: 0 0 30px rgba(211,132,58,0.6); }
+
       /* ═══ LOADING / INTRO SCREEN ═══ */
       #loading-screen {
         position: absolute;
@@ -49,7 +83,6 @@
         justify-content: center;
         align-items: center;
         z-index: 1000;
-        transition: opacity 1.5s ease-out;
         font-family: 'Anton', sans-serif;
         color: #fff;
       }
@@ -87,12 +120,12 @@
       /* Cinematic sentence */
       #intro-sentence {
         font-family: 'Anton', sans-serif;
-        font-size: 2rem;
+        font-size: 3rem;
         font-weight: 400;
         color: #fff;
         text-align: center;
-        max-width: 800px;
-        line-height: 1.7;
+        max-width: 900px;
+        line-height: 1.5;
         opacity: 0;
         transition: opacity 0.8s ease-in-out;
         padding: 0 40px;
@@ -130,7 +163,6 @@
         align-items: center;
         z-index: 1001;
         font-family: 'Anton', sans-serif;
-        transition: opacity 1s ease-out;
       }
       #difficulty-screen::before {
         content: '';
@@ -246,20 +278,21 @@
       /* ═══ TRUST / REPUTATION BAR ═══ */
       #rep-bar-container {
         position: absolute;
-        bottom: 20px;
-        left: 20px;
+        bottom: 28px;
+        left: 24px;
         font-family: 'Segoe UI', sans-serif;
         color: white;
-        font-size: 0.72rem;
+        font-size: 0.85rem;
+        font-weight: bold;
         z-index: 100;
-        text-shadow: 1px 1px 3px black;
+        text-shadow: 1px 1px 4px black;
       }
       #rep-bar-bg {
-        width: 140px;
-        height: 6px;
+        width: 180px;
+        height: 8px;
         background: rgba(255,255,255,0.2);
-        border-radius: 3px;
-        margin-top: 4px;
+        border-radius: 4px;
+        margin-top: 6px;
         overflow: hidden;
       }
       #rep-bar-fill {
@@ -273,12 +306,13 @@
       /* ═══ CONTROLS HINT ═══ */
       #controls-hint {
         position: absolute;
-        bottom: 20px;
-        left: 170px;
+        bottom: 30px;
+        left: 220px;
         font-family: 'Segoe UI', sans-serif;
-        color: rgba(255,255,255,0.7);
-        font-size: 0.7rem;
-        text-shadow: 1px 1px 3px black;
+        color: rgba(255,255,255,0.85);
+        font-size: 0.82rem;
+        font-weight: bold;
+        text-shadow: 1px 1px 4px black;
         z-index: 100;
         line-height: 1.6;
       }
@@ -456,6 +490,12 @@
     <!-- ═══ TITLE SCREEN ═══ -->
     <div id="title-screen">
       <button id="start-btn">START</button>
+    </div>
+
+    <!-- ═══ CONTROLS / RULES SCREEN ═══ -->
+    <div id="controls-screen">
+      <img id="controls-img" src="" alt="Game Controls" />
+      <button id="continue-btn">CONTINUE</button>
     </div>
 
     <!-- ═══ DIFFICULTY SELECT ═══ -->

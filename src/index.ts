@@ -44,59 +44,69 @@ const loadingScreen = document.getElementById('loading-screen');
 const loadingManager = new THREE.LoadingManager();
 
 // ─── Cinematic intro — pairs of sentences shown together ───
-const introPairs = [
+const introPairs = [ 
     "THE YEAR IS 2164 AD.\n150 YEARS OF NEGLECT HAVE FINALLY BROKEN EARTH.",
     "THE OCEANS ARE BLACK. THE AIR IS IRON.\nHUMANITY'S FINAL HOPE RESTS ON A SINGLE SIGNAL FROM MARS.",
-    "YOU ARE RYAN, AN ASTRONAUT ON A SUICIDE MISSION\nTO FIND THE ANCESTRAL MARTIAN CORE.",
-    "YOU CRASHED. YOUR SHIP IS SCRAP.\nBUT YOU ARE NOT ALONE.",
-    "IF YOU CAN CONVINCE THEM, YOU MIGHT SAVE EARTH.\nIF YOU FAIL, YOU WILL BE THE LAST HUMAN TO EVER BREATHE."
+    "YOU ARE RYAN, SENT TO MARS\nTO FIND A NEW HABITAT FOR HUMANITY.",
+    "YOUR SHIP LOSES SIGNAL.\nEARTH CAN NO LONGER HEAR YOU.",
+    "SYSTEMS ARE FAILING.\nYOU CRASH INTO THE RED DUST.",
+    "NO LIFE. ONLY RED SMOKE.\nONLY SILENCE.",
+    "YOUR SHIP IS SCRAP.\nBUT YOU ARE NOT ALONE.",
+    "CONVINCE THEM, YOU MIGHT SAVE EARTH.\nFAIL, AND YOU DIE THE LAST HUMAN."
 ];
-
 let introFinished = false;
 let assetsLoaded = false;
 let selectedDifficulty = 'easy';
 
-// Show title screen FIRST, hide everything else
+// Hide the 3D canvas until the game actually starts
+renderer.domElement.style.display = 'none';
 const titleScreen = document.getElementById('title-screen');
+const controlsScreen = document.getElementById('controls-screen');
 const diffScreen = document.getElementById('difficulty-screen');
 if (titleScreen) titleScreen.style.display = 'flex';
+if (controlsScreen) controlsScreen.style.display = 'none';
 if (diffScreen) diffScreen.style.display = 'none';
 if (loadingScreen) loadingScreen.style.display = 'none';
 
-// START button → show difficulty screen
+// Pick a random controls image
+const controlImages = ['images/controls.png', 'images/controls2.png', 'images/controls3.png', 'images/controls4.png'];
+const randomControlImg = controlImages[Math.floor(Math.random() * controlImages.length)];
+const controlsImg = document.getElementById('controls-img') as HTMLImageElement;
+if (controlsImg) controlsImg.src = randomControlImg;
+
+// START button → go fullscreen then show controls screen
 const startBtn = document.getElementById('start-btn');
 if (startBtn) {
     startBtn.addEventListener('click', () => {
-        if (titleScreen) {
-            titleScreen.style.opacity = '0';
-            setTimeout(() => {
-                titleScreen.style.display = 'none';
-                if (diffScreen) diffScreen.style.display = 'flex';
-            }, 800);
-        }
+        document.documentElement.requestFullscreen().catch(() => {});
+        if (titleScreen) titleScreen.style.display = 'none';
+        if (controlsScreen) controlsScreen.style.display = 'flex';
+    });
+}
+
+// CONTINUE button → show difficulty screen
+const continueBtn = document.getElementById('continue-btn');
+if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+        if (controlsScreen) controlsScreen.style.display = 'none';
+        if (diffScreen) diffScreen.style.display = 'flex';
     });
 }
 
 function dismissLoadingScreen() {
     if (!loadingScreen) return;
     introFinished = true;
-    loadingScreen.style.opacity = '0';
-    setTimeout(() => { loadingScreen.style.display = 'none'; }, 1500);
+    if (introAudio) { introAudio.pause(); introAudio = null; }
+    renderer.domElement.style.display = 'block';
+    loadingScreen.style.display = 'none';
 }
 
 function startGameWithDifficulty(diff: string) {
     selectedDifficulty = diff;
     if (diffScreen) {
-        // Show loading screen BEHIND difficulty screen FIRST so game world never flashes
-        if (loadingScreen) {
-            loadingScreen.style.display = 'flex';
-            loadingScreen.style.opacity = '1';
-        }
-        diffScreen.style.opacity = '0';
-        setTimeout(() => {
-            diffScreen.style.display = 'none';
-            runCinematicIntro();
-        }, 800);
+        if (loadingScreen) loadingScreen.style.display = 'flex';
+        diffScreen.style.display = 'none';
+        runCinematicIntro();
     }
     // Tell server which difficulty
     fetch('http://localhost:3001/api/set-difficulty', {
@@ -113,22 +123,43 @@ document.querySelectorAll('.diff-btn').forEach(btn => {
     });
 });
 
+let introAudio: HTMLAudioElement | null = null;
+let voiceEnded = false;
+
 function runCinematicIntro() {
     const sentenceEl = document.getElementById('intro-sentence');
     const skipBtn = document.getElementById('skip-intro');
     if (!sentenceEl) return;
 
+    voiceEnded = false;
+
+    // Play voice.mp3 at 1.2x speed
+    introAudio = new Audio('voice/voice.mp3');
+    introAudio.playbackRate = 1.2;
+    introAudio.play().catch(() => {});
+    introAudio.onended = () => { voiceEnded = true; };
+
     let idx = 0;
     let cancelled = false;
+
+    // Calculate timing: spread slides evenly across audio duration
+    // Fallback to 6s per slide if duration unknown
+    function getSlideTime(): number {
+        if (introAudio && introAudio.duration && isFinite(introAudio.duration)) {
+            return (introAudio.duration / introAudio.playbackRate) / introPairs.length * 1000;
+        }
+        return 6000;
+    }
 
     function showNext() {
         if (cancelled || idx >= introPairs.length) {
             sentenceEl.classList.remove('visible');
-            const waitForAssets = () => {
-                if (assetsLoaded) { dismissLoadingScreen(); }
-                else { setTimeout(waitForAssets, 200); }
+            // Wait for BOTH voice to end AND assets to load
+            const waitForAll = () => {
+                if (voiceEnded && assetsLoaded) { dismissLoadingScreen(); }
+                else { setTimeout(waitForAll, 200); }
             };
-            setTimeout(waitForAssets, 600);
+            setTimeout(waitForAll, 600);
             return;
         }
         sentenceEl.classList.remove('visible');
@@ -136,13 +167,15 @@ function runCinematicIntro() {
             sentenceEl.innerText = introPairs[idx];
             sentenceEl.classList.add('visible');
             idx++;
-            setTimeout(showNext, 3500);
-        }, 300);
+            setTimeout(showNext, getSlideTime());
+        }, 400);
     }
 
     if (skipBtn) {
         skipBtn.addEventListener('click', () => {
             cancelled = true;
+            voiceEnded = true;
+            if (introAudio) { introAudio.pause(); introAudio = null; }
             const waitForAssets = () => {
                 if (assetsLoaded) { dismissLoadingScreen(); }
                 else {
@@ -764,7 +797,7 @@ const worldObjects: ObjectConfig[] = [
     { file: 'objects/ufo.glb',                                   scale: 0.55,  y: 0, scanId: 'ufo',          displayName: 'Alien UFO', description: 'An alien spacecraft with a transmitter that can send signals to Earth.' },
     { file: 'objects/starship_mk1.glb',                          scale: 0.055, y: 4, scanId: 'starship',     displayName: 'Ryan\'s Crashed Ship', description: 'Your ship. Destroyed on landing. There is no going back.' },
     { file: 'objects/perseverance_-_nasa_mars_landing_2021.glb', scale: 0.82,  y: 0, scanId: 'perseverance', displayName: 'NASA Perseverance Rover', description: 'NASA Perseverance. High-gain antenna detected. Can sync with the Martian Core.' },
-    { file: 'objects/mars_rover.glb',                            scale: 0.04,  y: 0, scanId: 'curiosity',    displayName: 'NASA Curiosity Rover', description: 'NASA Curiosity. Outdated hardware. Cannot amplify the Martian Core signal.' },
+    { file: 'objects/curiosity_rover_mars_nasa.glb',              scale: 0.04,  y: 0, scanId: 'curiosity',    displayName: 'NASA Curiosity Rover', description: 'NASA Curiosity. Outdated hardware. Cannot amplify the Martian Core signal.' },
 ]
 
 // Fixed spawn positions scattered around the map (not on top of player spawn at 0,0)
