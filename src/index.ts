@@ -1,8 +1,7 @@
-import { KeyDisplay } from './utils';
+﻿import { KeyDisplay } from './utils';
 import { CharacterControls } from './characterControls';
 import { NPC } from './npc';
 import * as THREE from 'three'
-import { CameraHelper } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -43,7 +42,7 @@ generateFloor()
 const loadingScreen = document.getElementById('loading-screen');
 const loadingManager = new THREE.LoadingManager();
 
-// ─── Cinematic intro — pairs of sentences shown together ───
+// â”€â”€â”€ Cinematic intro â€” pairs of sentences shown together â”€â”€â”€
 const introPairs = [ 
     "THE YEAR IS 2164 AD.\n150 YEARS OF NEGLECT HAVE FINALLY BROKEN EARTH.",
     "THE OCEANS ARE BLACK. THE AIR IS IRON.\nHUMANITY'S FINAL HOPE RESTS ON A SINGLE SIGNAL FROM MARS.",
@@ -74,7 +73,7 @@ const randomControlImg = controlImages[Math.floor(Math.random() * controlImages.
 const controlsImg = document.getElementById('controls-img') as HTMLImageElement;
 if (controlsImg) controlsImg.src = randomControlImg;
 
-// START button → go fullscreen then show controls screen
+// START button â†’ go fullscreen then show controls screen
 const startBtn = document.getElementById('start-btn');
 if (startBtn) {
     startBtn.addEventListener('click', () => {
@@ -84,7 +83,7 @@ if (startBtn) {
     });
 }
 
-// CONTINUE button → show difficulty screen
+// CONTINUE button â†’ show difficulty screen
 const continueBtn = document.getElementById('continue-btn');
 if (continueBtn) {
     continueBtn.addEventListener('click', () => {
@@ -109,7 +108,7 @@ function startGameWithDifficulty(diff: string) {
         runCinematicIntro();
     }
     // Tell server which difficulty
-    fetch('http://localhost:3001/api/set-difficulty', {
+    fetch('/api/set-difficulty', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ difficulty: diff })
@@ -236,9 +235,9 @@ new GLTFLoader(loadingManager).load('models/mercenary_astronaut.glb', function (
     characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, camera,  initialAction)
 });
 
-// NPC ALIENS — Zorg (alien1) and Xylia (alien2)
+// NPC ALIENS â€” Zorg (alien1) and Xylia (alien2)
 const npcs: NPC[] = []
-const NUM_ALIENS = 2
+
 const INTERACTION_DISTANCE = 4
 
 const loader = new GLTFLoader(loadingManager)
@@ -270,11 +269,11 @@ const spawnNPC = (x: number, z: number, id: string) => {
 }
 
 // Fixed positions: Zorg and Xylia far from player, on opposite sides of each other
-spawnNPC(-20, -18, 'alien1');  // Zorg — far left
-spawnNPC(18, 16, 'alien2');   // Xylia — far right, opposite side
+spawnNPC(-20, -18, 'alien1');  // Zorg â€” far left
+spawnNPC(18, 16, 'alien2');   // Xylia â€” far right, opposite side
 
 // ===================================
-// 🎤 VOICE INPUT & CHAT SYSTEM
+// ðŸŽ¤ VOICE INPUT & CHAT SYSTEM
 // ===================================
 const micBtn = document.getElementById('mic-btn');
 const chatContainer = document.getElementById('chat-container');
@@ -360,7 +359,7 @@ if (micBtn) {
     });
 }
 
-// ⌨️ SHORTCUT: Hold ALT to speak
+// âŒ¨ï¸ SHORTCUT: Hold ALT to speak
 document.addEventListener('keydown', (event) => {
     if ((event.key === 'Alt' || event.key === 'AltGraph') && !event.repeat) {
         event.preventDefault(); 
@@ -415,10 +414,10 @@ function showChat(name: string, text: string) {
 
 function showThought(thought: string) {
     if (!thoughtBubble || !thought) return;
-    thoughtBubble.innerText = `💭 "${thought}"`;
+    thoughtBubble.innerText = `ðŸ’­ "${thought}"`;
     thoughtBubble.style.display = 'block';
     thoughtBubble.style.opacity = '1';
-    // Sits just above the chat container (chat = top:20px, thought = top:20px → we push chat down temporarily)
+    // Sits just above the chat container (chat = top:20px, thought = top:20px â†’ we push chat down temporarily)
     if (chatContainer) chatContainer.style.top = '58px';
     setTimeout(() => {
         thoughtBubble.style.opacity = '0';
@@ -463,7 +462,7 @@ async function sendToBackend(npcId: string, playerMessage: string, contextOverri
             playerMessage: playerMessage || contextOverride // Send context if no spoken message
         };
 
-        const response = await fetch('http://localhost:3001/api/npc-chat', {
+        const response = await fetch('/api/npc-chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -493,7 +492,7 @@ async function sendToBackend(npcId: string, playerMessage: string, contextOverri
         // Check if trust unlocked the core
         if (data.coreUnlocked && !coreUnlocked) {
             coreUnlocked = true;
-            showChat("System", "⚡ The aliens trust you. You can now use the UFO transmitter.");
+            showChat("System", "âš¡ The aliens trust you. You can now use the UFO transmitter.");
         }
 
         // Show Alien Response
@@ -514,7 +513,7 @@ async function sendToBackend(npcId: string, playerMessage: string, contextOverri
 }
 
 function speakText(_text: string) {
-    // Removed — using ElevenLabs TTS only
+    // Removed â€” using ElevenLabs TTS only
 }
 
 // ===================================
@@ -526,7 +525,7 @@ let extractedCoordinates = '';
 let missionComplete = false;
 
 // ===================================
-// 📷 SCANNER — 'C' key
+// ðŸ“· SCANNER â€” 'C' key
 // ===================================
 interface ScannableObject {
     name: string
@@ -563,7 +562,7 @@ function scanNearbyObject() {
         if (coreUnlocked && dataExtracted) {
             showChat('Scanner', 'UFO transmitter ready. Press [E] to open the terminal and send signal.');
         } else if (coreUnlocked) {
-            showChat('Scanner', 'UFO transmitter unlocked. But you need data first — find Perseverance rover.');
+            showChat('Scanner', 'UFO transmitter unlocked. But you need data first â€” find Perseverance rover.');
         } else {
             showChat('Scanner', 'Alien UFO. You need the aliens\' trust before you can use this.');
         }
@@ -589,7 +588,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 // ===================================
-// ⏳ EXTRACTION — Hold 'E'
+// â³ EXTRACTION â€” Hold 'E'
 // ===================================
 const extractOverlay = document.getElementById('extract-overlay');
 const extractCircle = document.querySelector('#extract-ring svg circle') as SVGCircleElement | null;
@@ -626,7 +625,7 @@ document.addEventListener('keydown', async (event) => {
 
         // Always sync game state from server before checking
         try {
-            const stateRes = await fetch('http://localhost:3001/api/game-state');
+            const stateRes = await fetch('/api/game-state');
             const state = await stateRes.json();
             coreUnlocked = state.coreUnlocked;
             dataExtracted = state.dataExtracted;
@@ -688,7 +687,7 @@ function updateExtraction(delta: number) {
 async function completeExtraction() {
     showHUD(['[DATA EXTRACTION]', 'SYNCING WITH PERSEVERANCE...', 'DOWNLOADING MARTIAN COLLAPSE LOGS...']);
     try {
-        const res = await fetch('http://localhost:3001/api/extract', {
+        const res = await fetch('/api/extract', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
@@ -708,7 +707,7 @@ async function completeExtraction() {
 }
 
 // ===================================
-// 📡 EARTH-COMM TERMINAL
+// ðŸ“¡ EARTH-COMM TERMINAL
 // ===================================
 if (sendSignalBtn) {
     sendSignalBtn.addEventListener('click', async () => {
@@ -718,7 +717,7 @@ if (sendSignalBtn) {
         showHUD(['[TRANSMITTING]', 'LOCKING DEEP SPACE FREQUENCY...', 'BEAMING SIGNAL TO EARTH...']);
 
         try {
-            const res = await fetch('http://localhost:3001/api/send-signal', {
+            const res = await fetch('/api/send-signal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ coordinates: coords })
@@ -741,7 +740,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ===================================
-// 🎬 ENDING SEQUENCE
+// ðŸŽ¬ ENDING SEQUENCE
 // ===================================
 function triggerEnding(radioMessage: string) {
     missionComplete = true;
@@ -781,7 +780,7 @@ function triggerEnding(radioMessage: string) {
     }, 8000);
 }
 
-// WORLD OBJECTS — scattered around behind/around the player spawn
+// WORLD OBJECTS â€” scattered around behind/around the player spawn
 const objectLoader = new GLTFLoader(loadingManager)
 
 interface ObjectConfig {
@@ -830,7 +829,7 @@ worldObjects.forEach((cfg, index) => {
     })
 })
 
-// CLIFFS — some near objects, some far away
+// CLIFFS â€” some near objects, some far away
 const cliffConfigs = [
     { file: 'objects/desert_high_cliff.glb', scale: 0.0005 },
     { file: 'objects/desert_cliff_6.glb',    scale: 0.002  },

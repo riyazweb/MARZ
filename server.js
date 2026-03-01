@@ -5,13 +5,36 @@ const { Mistral } = require("@mistralai/mistralai");
 const MemoryClient = require("mem0ai").default;
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: "10mb" })); // larger limit for base64 screenshots
+
+// CORS — restrict to same origin in production, allow localhost in dev
+const allowedOrigins = process.env.ALLOWED_ORIGIN
+  ? [process.env.ALLOWED_ORIGIN]
+  : ["http://localhost:8080", "http://localhost:3000", "http://127.0.0.1:8080"];
+app.use(cors({ origin: allowedOrigins }));
+
+// Rate limiting — max 30 requests per minute per IP to protect AI API costs
+const requestCounts = new Map();
+app.use("/api/npc-chat", (req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const max = 30;
+  if (!requestCounts.has(ip)) requestCounts.set(ip, []);
+  const timestamps = requestCounts.get(ip).filter(t => now - t < windowMs);
+  if (timestamps.length >= max) {
+    return res.status(429).json({ error: "Too many requests. Please slow down." });
+  }
+  timestamps.push(now);
+  requestCounts.set(ip, timestamps);
+  next();
+});
+
+app.use(express.json({ limit: "1mb" }));
 
 const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
 
-// Mem0 persistent memory client
-const mem0 = new MemoryClient({ apiKey: "m0-11DYbsv363k3tFYGWykmyCqLzxXjwvbeiDHXBWwZ" });
+// Mem0 persistent memory client (disabled — key from env)
+const mem0 = new MemoryClient({ apiKey: process.env.MEM0_API_KEY || "" });
 const MEM0_USER_ID = "mars_player_1";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -260,8 +283,17 @@ async function generateSpeech(text, voiceId) {
 app.post("/api/npc-chat", async (req, res) => {
   try {
     const { npcId = "alien1", playerMessage = "" } = req.body;
+    // Validate inputs
+    if (typeof npcId !== "string" || !NPC_PERSONAS[npcId]) {
+      return res.status(400).json({ error: "Unknown NPC" });
+    }
+    if (playerMessage && typeof playerMessage !== "string") {
+      return res.status(400).json({ error: "Invalid message" });
+    }
+    if (playerMessage && playerMessage.length > 500) {
+      return res.status(400).json({ error: "Message too long (max 500 characters)" });
+    }
     const npc = NPC_PERSONAS[npcId];
-    if (!npc) return res.status(400).json({ error: "Unknown NPC" });
 
     const history = getPlayerHistory(npcId);
     const userMsg = playerMessage || "[The human stares at you silently]";
