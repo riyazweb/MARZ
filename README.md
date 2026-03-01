@@ -1,4 +1,4 @@
-# MARZ — Last Hope
+# MARSZ — Last Hope
 
 **A 3D Mars exploration game where you talk to AI aliens using your voice to save Earth.**
 
