@@ -42,6 +42,8 @@ This is what the **future of gaming** looks like:
 - **🏁 Mission Complete Ending — White beam flash, aliens fade to dust, radio crackle from Earth, ending screen.**
 - **🛸 HUD Overlay — Live AI telemetry showing neural link status, NPC emotion, reputation score, and scanner data.**
 
+
+
 ## Game Story
 
 The year is **2164 AD**. 150 years of pollution have destroyed Earth. The oceans are black. The air is iron. Humanity is dying.
