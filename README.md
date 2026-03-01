@@ -5,6 +5,10 @@
 > The year is 2164 AD. Earth is dying. You are Ryan, an astronaut who crash-landed on Mars. Two alien survivors live here — Zorg and Xylia. Talk to them, earn their trust, and send a signal back to Earth before it's too late.
 
 ---
+![Add_sub_heading_text__ai_npc_game_white_text_2k_delpmaspu](https://github.com/user-attachments/assets/961b3d13-92a3-447a-a8bb-d547908423a2)
+
+
+
 
 ## Why This Game Is Different
 
