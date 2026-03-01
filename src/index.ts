@@ -2,6 +2,7 @@
 import { CharacterControls } from './characterControls';
 import { NPC } from './npc';
 import * as THREE from 'three'
+import { CameraHelper } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -237,7 +238,7 @@ new GLTFLoader(loadingManager).load('models/mercenary_astronaut.glb', function (
 
 // NPC ALIENS â€” Zorg (alien1) and Xylia (alien2)
 const npcs: NPC[] = []
-
+const NUM_ALIENS = 2
 const INTERACTION_DISTANCE = 4
 
 const loader = new GLTFLoader(loadingManager)
@@ -512,8 +513,28 @@ async function sendToBackend(npcId: string, playerMessage: string, contextOverri
     }
 }
 
-function speakText(_text: string) {
-    // Removed â€” using ElevenLabs TTS only
+function speakText(text: string) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel(); // Stop any previous speech
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Attempt to find a deep/serious voice for the Commander
+    const voices = window.speechSynthesis.getVoices();
+    // Prefer "Google US English" or a male voice if available
+    const preferredVoice = voices.find(v => 
+        v.name.includes("Google US English") || 
+        v.name.includes("Male") || 
+        v.name.includes("David")
+    );
+    
+    if (preferredVoice) utterance.voice = preferredVoice;
+    
+    utterance.rate = 0.85;  // Slower, dramatic
+    utterance.pitch = 0.8;  // Lower pitch
+    utterance.volume = 1.0;
+
+    window.speechSynthesis.speak(utterance);
 }
 
 // ===================================
@@ -782,6 +803,7 @@ function triggerEnding(radioMessage: string) {
 
 // WORLD OBJECTS â€” scattered around behind/around the player spawn
 const objectLoader = new GLTFLoader(loadingManager)
+const colliders: THREE.Box3[] = []; // Physics colliders for player
 
 interface ObjectConfig {
     file: string
@@ -796,13 +818,19 @@ const worldObjects: ObjectConfig[] = [
     { file: 'objects/ufo.glb',                                   scale: 0.55,  y: 0, scanId: 'ufo',          displayName: 'Alien UFO', description: 'An alien spacecraft with a transmitter that can send signals to Earth.' },
     { file: 'objects/starship_mk1.glb',                          scale: 0.055, y: 4, scanId: 'starship',     displayName: 'Ryan\'s Crashed Ship', description: 'Your ship. Destroyed on landing. There is no going back.' },
     { file: 'objects/perseverance_-_nasa_mars_landing_2021.glb', scale: 0.82,  y: 0, scanId: 'perseverance', displayName: 'NASA Perseverance Rover', description: 'NASA Perseverance. High-gain antenna detected. Can sync with the Martian Core.' },
-    { file: 'objects/curiosity_rover_mars_nasa.glb',              scale: 0.04,  y: 0, scanId: 'curiosity',    displayName: 'NASA Curiosity Rover', description: 'NASA Curiosity. Outdated hardware. Cannot amplify the Martian Core signal.' },
+    { file: 'objects/curiosity_rover_mars_nasa.glb',              scale: 2.5,   y: 0.65, scanId: 'curiosity',    displayName: 'NASA Curiosity Rover', description: 'NASA Curiosity. Outdated hardware. Cannot amplify the Martian Core signal.' },
 ]
 
 // Fixed spawn positions scattered around the map (not on top of player spawn at 0,0)
 const objectSpawnPositions = [
-    [-8, -10], [10, -8], [-12, 6], [14, 12],
-    [18, -4], [-16, -6], [8, 18], [-10, 16]
+    [-8, -10],  // UFO
+    [10, -8],   // Ship
+    [-12, 6],   // Perseverance
+    [5, 5],     // CURIOSITY ROVER (Moved closer to player start (0,0))
+    [18, -4],
+    [-16, -6],
+    [8, 18],
+    [-10, 16]
 ]
 
 worldObjects.forEach((cfg, index) => {
@@ -816,6 +844,12 @@ worldObjects.forEach((cfg, index) => {
             if (child.isMesh) { child.castShadow = true; child.receiveShadow = true }
         })
         scene.add(obj)
+        // Add physics collider (simple bounding box)
+        obj.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(obj);
+        // Shrink box slightly on Y (don't collide with antennae/tall thin parts as much?)
+        // Or just use the full box. Standard Box3 is usually fine.
+        colliders.push(box);
 
         // Register for C-key scanning
         scannableObjects.push({
@@ -878,6 +912,9 @@ cliffConfigs.forEach(cfg => {
                 if (child.isMesh) { child.castShadow = true; child.receiveShadow = true }
             })
             scene.add(obj)
+            // Add physics
+            obj.updateMatrixWorld(true);
+            colliders.push(new THREE.Box3().setFromObject(obj));
         }, undefined, function (err) {
             console.warn('Could not load cliff:', cfg.file, err)
         })
@@ -905,7 +942,8 @@ const clock = new THREE.Clock();
 function animate() {
     let mixerUpdateDelta = clock.getDelta();
     if (characterControls) {
-        characterControls.update(mixerUpdateDelta, keysPressed);
+        // Pass physics colliders to update loop
+        characterControls.update(mixerUpdateDelta, keysPressed, colliders);
     }
     npcs.forEach(npc => npc.update(mixerUpdateDelta, characterControls ? characterControls.model.position : undefined, INTERACTION_DISTANCE))
     updateExtraction(mixerUpdateDelta);

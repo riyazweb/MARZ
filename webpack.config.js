@@ -24,5 +24,8 @@ module.exports = {
   },
   devServer: {
     static: src,
+    proxy: {
+      '/api': 'http://localhost:3001',
+    },
   },
 }

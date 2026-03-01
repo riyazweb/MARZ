@@ -50,7 +50,7 @@ export class CharacterControls {
         this.toggleRun = !this.toggleRun
     }
 
-    public update(delta: number, keysPressed: any) {
+    public update(delta: number, keysPressed: any, colliders: THREE.Box3[] = []) {
         const directionPressed = DIRECTIONS.some(key => keysPressed[key] == true)
 
         var play = '';
@@ -105,10 +105,67 @@ export class CharacterControls {
             // move model & camera
             const moveX = this.walkDirection.x * velocity * delta
             const moveZ = this.walkDirection.z * velocity * delta
-            this.model.position.x += moveX
-            this.model.position.z += moveZ
-            this.model.position.y = this.groundHeight
-            this.updateCameraTarget(moveX, moveZ)
+
+            // COLLISION CHECK
+            // Predict next position
+            const currentX = this.model.position.x
+            const currentZ = this.model.position.z 
+            const nextX = currentX + moveX
+            const nextZ = currentZ + moveZ
+
+            // Simple Axis-Aligned Bounding Box (AABB) for Player
+            // Assume player width ~1 unit, height ~2 units
+            const playerBox = new THREE.Box3();
+            playerBox.min.set(nextX - 0.3, this.model.position.y, nextZ - 0.3);
+            playerBox.max.set(nextX + 0.3, this.model.position.y + 2, nextZ + 0.3);
+
+            let collision = false;
+            if (colliders && colliders.length > 0) {
+                for(let i = 0; i < colliders.length; i++) {
+                    if(playerBox.intersectsBox(colliders[i])) {
+                        collision = true;
+                        break; 
+                    }
+                }
+            }
+
+            if (!collision) {
+                this.model.position.x += moveX
+                this.model.position.z += moveZ
+                this.updateCameraTarget(moveX, moveZ)
+            } else {
+                // Determine if we can slide along X or Z
+                // Try moving only X
+                playerBox.min.set(nextX - 0.3, this.model.position.y, currentZ - 0.3);
+                playerBox.max.set(nextX + 0.3, this.model.position.y + 2, currentZ + 0.3);
+                let collisionX = false;
+                for(let i = 0; i < colliders.length; i++) {
+                    if(playerBox.intersectsBox(colliders[i])) {
+                        collisionX = true;
+                        break;
+                    }
+                }
+                
+                if (!collisionX) {
+                    this.model.position.x += moveX;
+                    this.updateCameraTarget(moveX, 0);
+                } else {
+                     // Try moving only Z
+                    playerBox.min.set(currentX - 0.3, this.model.position.y, nextZ - 0.3);
+                    playerBox.max.set(currentX + 0.3, this.model.position.y + 2, nextZ + 0.3);
+                    let collisionZ = false;
+                    for(let i = 0; i < colliders.length; i++) {
+                        if(playerBox.intersectsBox(colliders[i])) {
+                            collisionZ = true;
+                            break;
+                        }
+                    }
+                    if (!collisionZ) {
+                        this.model.position.z += moveZ;
+                        this.updateCameraTarget(0, moveZ);
+                    }
+                }
+            }
         }
     }
 
