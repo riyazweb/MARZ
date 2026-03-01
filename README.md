@@ -23,8 +23,7 @@ This is what the **future of gaming** looks like:
 
 ---
 
-##SCREENSHOTS:
-<img width="1917" height="1079" alt="image" src="https://github.com/user-attachments/assets/c352e124-0556-4879-904b-db13585aa032" />
+## SCREENSHOTS:
 
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/185960b9-95c3-4892-a70f-34aa1f9fed64" />
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/eda00a56-cc5e-40f6-9361-c7f576a97f4c" />
