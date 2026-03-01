@@ -216,7 +216,7 @@ Server runs on `http://localhost:3001`
 ### 4. Build & serve the frontend
 
 ```bash
-npm run build
+ npm run serve 
 ```
 
 Then open `src/index.html` in your browser (or use a local server).
