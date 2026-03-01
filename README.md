@@ -31,7 +31,8 @@ This is what the **future of gaming** looks like:
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/41d3ef63-2505-4c26-9aab-b4a3b6563121" />
 
 
-## DEMO
+## DEMO:CLICK HERE TO WATCH YT VIDEO
+
 [![Watch the Demo](https://img.youtube.com/vi/wLuUAG_bVFY/0.jpg)](https://www.youtube.com/watch?v=wLuUAG_bVFY)
 
 ## Features
