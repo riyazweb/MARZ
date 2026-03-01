@@ -2,70 +2,409 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>three.js example</title>
+    <title>MARS SIGNAL — Last Hope</title>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
     <style>
       body {
         margin: 0px;
         overflow: hidden;
-        background: #ff7436;
+        background: #000;
       }
+
+      /* ═══ TITLE SCREEN ═══ */
+      #title-screen {
+        position: absolute;
+        width: 100%; height: 100%;
+        background: url('images/main.png') center/cover no-repeat;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        z-index: 1002;
+        transition: opacity 1s ease-out;
+      }
+      #start-btn {
+        margin-bottom: 80px;
+        padding: 18px 60px;
+        background: rgba(211,132,58,0.85);
+        border: 2px solid rgba(255,255,255,0.5);
+        color: #fff;
+        font-family: 'Anton', sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 6px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      }
+      #start-btn:hover { background: rgba(211,132,58,1); transform: scale(1.05); box-shadow: 0 0 30px rgba(211,132,58,0.6); }
+
+      /* ═══ LOADING / INTRO SCREEN ═══ */
       #loading-screen {
         position: absolute;
-        width: 100%;
-        height: 100%;
-        background-color: #ff7436;
+        width: 100%; height: 100%;
+        background: url('images/back.png') center/cover no-repeat;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         z-index: 1000;
-        transition: opacity 1s ease-out;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        color: white;
+        transition: opacity 1.5s ease-out;
+        font-family: 'Anton', sans-serif;
+        color: #fff;
       }
-      .loader {
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid #ffffff;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
+      #loading-screen::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.15);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
       }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      #loading-screen > * { position: relative; z-index: 1; }
+      #loading-bar-container {
+        width: 320px;
+        height: 3px;
+        background: rgba(255,255,255,0.25);
+        border-radius: 2px;
+        overflow: hidden;
+        position: absolute;
+        bottom: 60px;
       }
-      #loading-text {
-        font-size: 1.2rem;
+      #loading-bar-fill {
+        height: 100%;
+        width: 0%;
+        background: #fff;
+        transition: width 0.3s ease-out;
+      }
+      #loading-pct {
+        position: absolute;
+        bottom: 40px;
+        font-size: 0.65rem;
+        letter-spacing: 3px;
+        color: rgba(255,255,255,0.6);
+      }
+      /* Cinematic sentence */
+      #intro-sentence {
+        font-family: 'Anton', sans-serif;
+        font-size: 2rem;
+        font-weight: 400;
+        color: #fff;
+        text-align: center;
+        max-width: 800px;
+        line-height: 1.7;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+        padding: 0 40px;
+        text-shadow: 0 2px 16px rgba(0,0,0,0.7);
+        white-space: pre-line;
         letter-spacing: 2px;
       }
+      #intro-sentence.visible { opacity: 1; }
+      #skip-intro {
+        position: absolute;
+        bottom: 100px;
+        right: 40px;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.4);
+        color: #fff;
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        padding: 8px 24px;
+        cursor: pointer;
+        z-index: 1001;
+        border-radius: 4px;
+        transition: background 0.3s;
+      }
+      #skip-intro:hover {
+        background: rgba(255,255,255,0.3);
+      }
+      /* ═══ DIFFICULTY SELECTOR ═══ */
+      #difficulty-screen {
+        position: absolute;
+        width: 100%; height: 100%;
+        background: url('images/back.png') center/cover no-repeat;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1001;
+        font-family: 'Anton', sans-serif;
+        transition: opacity 1s ease-out;
+      }
+      #difficulty-screen::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.15);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+      }
+      #difficulty-screen > * { position: relative; z-index: 1; }
+      #difficulty-screen h1 {
+        font-family: 'Anton', sans-serif;
+        font-size: 2rem;
+        color: #fff;
+        letter-spacing: 6px;
+        margin-bottom: 40px;
+        text-shadow: 0 2px 16px rgba(0,0,0,0.7);
+      }
+      .diff-btn {
+        width: 260px;
+        padding: 16px 0;
+        margin: 8px 0;
+        border: 2px solid rgba(211,132,58,0.7);
+        background: rgba(194,112,58,0.25);
+        color: #fff;
+        font-family: 'Anton', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 400;
+        letter-spacing: 3px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      }
+      .diff-btn:hover { background: rgba(211,132,58,0.5); transform: scale(1.03); box-shadow: 0 0 20px rgba(211,132,58,0.4); }
+      .diff-btn small { display: block; font-family: 'Segoe UI', sans-serif; font-weight: normal; font-size: 0.65rem; letter-spacing: 1px; margin-top: 4px; opacity: 0.7; }
 
-      /* CHAT UI */
+      /* ═══ CHAT UI ═══ */
       #chat-container {
         position: absolute;
         top: 20px;
         left: 50%;
         transform: translateX(-50%);
         width: 600px;
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        display: none; /* Hidden until needed */
+        background: rgba(30, 15, 8, 0.88);
+        border: 1px solid rgba(211,132,58,0.4);
+        border-radius: 10px;
+        padding: 18px 22px;
+        backdrop-filter: blur(8px);
+        display: none;
         font-family: 'Segoe UI', sans-serif;
         z-index: 100;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
       }
       #npc-name {
         font-weight: bold;
-        font-size: 1.1rem;
-        color: #d35400;
-        margin-bottom: 5px;
+        font-size: 1.05rem;
+        color: #d3843a;
+        margin-bottom: 4px;
       }
       #chat-text {
+        font-size: 0.95rem;
+        color: #e8d5c0;
+        line-height: 1.5;
+      }
+
+      /* ═══ THOUGHT BUBBLE ═══ */
+      #thought-bubble {
+        position: absolute;
+        top: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 580px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-family: 'Segoe UI', sans-serif;
+        font-style: italic;
+        font-size: 0.82rem;
+        color: rgba(200, 200, 200, 0.9);
+        display: none;
+        z-index: 99;
+        text-align: center;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.1);
+        pointer-events: none;
+        transition: opacity 0.5s;
+      }
+
+      /* ═══ HELMET HUD ═══ */
+      #hud-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        z-index: 90;
+        display: none;
+      }
+      #hud-text {
+        position: absolute;
+        top: 50%;
+        left: 20px;
+        transform: translateY(-50%);
+        font-family: 'Courier New', monospace;
+        font-size: 0.75rem;
+        color: #d3843a;
+        text-shadow: 0 0 8px #d3843a;
+        max-width: 280px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      /* ═══ TRUST / REPUTATION BAR ═══ */
+      #rep-bar-container {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        font-family: 'Segoe UI', sans-serif;
+        color: white;
+        font-size: 0.72rem;
+        z-index: 100;
+        text-shadow: 1px 1px 3px black;
+      }
+      #rep-bar-bg {
+        width: 140px;
+        height: 6px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 3px;
+        margin-top: 4px;
+        overflow: hidden;
+      }
+      #rep-bar-fill {
+        height: 100%;
+        width: 50%;
+        background: #d3843a;
+        border-radius: 3px;
+        transition: width 0.5s, background 0.5s;
+      }
+
+      /* ═══ CONTROLS HINT ═══ */
+      #controls-hint {
+        position: absolute;
+        bottom: 20px;
+        left: 170px;
+        font-family: 'Segoe UI', sans-serif;
+        color: rgba(255,255,255,0.7);
+        font-size: 0.7rem;
+        text-shadow: 1px 1px 3px black;
+        z-index: 100;
+        line-height: 1.6;
+      }
+
+      /* ═══ EXTRACTION PROGRESS (Hold E) ═══ */
+      #extract-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 110;
+      }
+      #extract-ring {
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        border: 4px solid rgba(255,255,255,0.15);
+        position: relative;
+      }
+      #extract-ring svg {
+        position: absolute;
+        top: -4px; left: -4px;
+        width: 108px; height: 108px;
+        transform: rotate(-90deg);
+      }
+      #extract-ring svg circle {
+        fill: none;
+        stroke: #d3843a;
+        stroke-width: 4;
+        stroke-dasharray: 314;
+        stroke-dashoffset: 314;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.1s;
+      }
+      #extract-label {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: 'Courier New', monospace;
+        color: #d3843a;
+        font-size: 0.7rem;
+        text-shadow: 0 0 6px #d3843a;
+      }
+
+      /* ═══ EARTH-COMM TERMINAL ═══ */
+      #earth-comm {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        background: rgba(20,10,5,0.94);
+        border: 1px solid #d3843a;
+        border-radius: 8px;
+        padding: 24px;
+        font-family: 'Courier New', monospace;
+        color: #d3843a;
+        display: none;
+        z-index: 200;
+        box-shadow: 0 0 40px rgba(211,132,58,0.3);
+      }
+      #earth-comm h2 {
+        margin: 0 0 12px 0;
         font-size: 1rem;
-        color: #333;
-        line-height: 1.4;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        border-bottom: 1px solid rgba(211,132,58,0.3);
+        padding-bottom: 8px;
+      }
+      #earth-comm .comm-status { font-size: 0.75rem; color: #aaa; margin-bottom: 12px; }
+      #coord-input {
+        width: 100%;
+        background: rgba(0,0,0,0.6);
+        border: 1px solid rgba(211,132,58,0.4);
+        color: #d3843a;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        padding: 10px;
+        border-radius: 4px;
+        outline: none;
+        box-sizing: border-box;
+      }
+      #send-signal-btn {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
+        background: #d3843a;
+        color: #000;
+        border: none;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 0.9rem;
+        cursor: pointer;
+        letter-spacing: 2px;
+      }
+      #send-signal-btn:hover { background: #e6a45c; }
+
+      /* ═══ MISSION COMPLETE SCREEN ═══ */
+      #mission-complete {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.95);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        z-index: 500;
+        font-family: 'Segoe UI', sans-serif;
+        color: white;
+        text-align: center;
+      }
+      #mission-complete h1 {
+        font-size: 2.2rem;
+        letter-spacing: 6px;
+        margin-bottom: 16px;
+        color: #d3843a;
+      }
+      #mission-complete p {
+        font-size: 1rem;
+        max-width: 500px;
+        line-height: 1.8;
+        color: #ccc;
       }
       #mic-btn {
         position: absolute;
@@ -114,18 +453,75 @@
     </style>
   </head>
   <body>
-    <div id="loading-screen">
-      <div class="loader"></div>
-      <div id="loading-text">PREPARING MARS EXPEDITION...</div>
+    <!-- ═══ TITLE SCREEN ═══ -->
+    <div id="title-screen">
+      <button id="start-btn">START</button>
     </div>
 
-    <!-- CHAT BOX -->
+    <!-- ═══ DIFFICULTY SELECT ═══ -->
+    <div id="difficulty-screen">
+      <h1>SELECT DIFFICULTY</h1>
+      <button class="diff-btn" data-diff="easy">EASY<small>Aliens are helpful — 5 min game</small></button>
+      <button class="diff-btn" data-diff="medium">MEDIUM<small>Earn their trust — 10 min game</small></button>
+      <button class="diff-btn" data-diff="hard">HARD<small>They don't trust you at all</small></button>
+    </div>
+
+    <!-- ═══ LOADING / CINEMATIC INTRO ═══ -->
+    <div id="loading-screen">
+      <div id="intro-sentence"></div>
+      <button id="skip-intro">SKIP ▸</button>
+      <div id="loading-bar-container"><div id="loading-bar-fill"></div></div>
+      <div id="loading-pct">LOADING 0%</div>
+    </div>
+
+    <!-- ═══ THOUGHT BUBBLE ═══ -->
+    <div id="thought-bubble"></div>
+
+    <!-- ═══ CHAT BOX ═══ -->
     <div id="chat-container">
       <div id="npc-name">Alien</div>
       <div id="chat-text">...</div>
     </div>
 
-    <!-- MIC BUTTON -->
+    <!-- ═══ HELMET HUD ═══ -->
+    <div id="hud-overlay">
+      <div id="hud-text"></div>
+    </div>
+
+    <!-- ═══ TRUST BAR ═══ -->
+    <div id="rep-bar-container">
+      TRUST: <span id="rep-value">50</span>/100
+      <div id="rep-bar-bg"><div id="rep-bar-fill"></div></div>
+    </div>
+
+    <!-- ═══ CONTROLS HINT ═══ -->
+    <div id="controls-hint">[C] Scan &nbsp; [E] Extract &nbsp; [ALT] Speak</div>
+
+    <!-- ═══ EXTRACTION RING (Hold E) ═══ -->
+    <div id="extract-overlay">
+      <div id="extract-ring">
+        <svg viewBox="0 0 108 108">
+          <circle cx="54" cy="54" r="50"/>
+        </svg>
+        <div id="extract-label">EXTRACTING...</div>
+      </div>
+    </div>
+
+    <!-- ═══ EARTH-COMM TERMINAL ═══ -->
+    <div id="earth-comm">
+      <h2>EARTH-COMM TERMINAL</h2>
+      <div class="comm-status">DEEP SPACE NETWORK &mdash; SIGNAL LOCK ACQUIRED</div>
+      <input id="coord-input" type="text" placeholder="ENTER COORDINATES..." autocomplete="off" />
+      <button id="send-signal-btn">[ SEND SIGNAL ]</button>
+    </div>
+
+    <!-- ═══ MISSION COMPLETE ═══ -->
+    <div id="mission-complete">
+      <h1>MISSION COMPLETE</h1>
+      <p>Earth has a second chance.<br><br><em>"Ryan... we have it. The collapse code. You did it. We're sending a rescue fleet. Hang on, son."</em></p>
+    </div>
+
+    <!-- ═══ MIC BUTTON ═══ -->
     <button id="mic-btn">🎤</button>
     <div class="mic-hint">Hold ALT to Speak</div>
     <script src="index.js"></script>

@@ -14,6 +14,7 @@ export class CharacterControls {
     // state
     toggleRun: boolean = false
     currentAction: string
+    groundHeight: number = 0
     
     // temporary data
     walkDirection = new THREE.Vector3()
@@ -29,11 +30,12 @@ export class CharacterControls {
     constructor(model: THREE.Group,
         mixer: THREE.AnimationMixer, animationsMap: Map<string, THREE.AnimationAction>,
         orbitControl: OrbitControls, camera: THREE.Camera,
-        currentAction: string) {
+        currentAction: string, groundHeight: number = 0) {
         this.model = model
         this.mixer = mixer
         this.animationsMap = animationsMap
         this.currentAction = currentAction
+        this.groundHeight = groundHeight
         this.animationsMap.forEach((value, key) => {
             if (key == currentAction) {
                 value.play()
@@ -59,6 +61,9 @@ export class CharacterControls {
         } else {
             play = 'Mixamo Idle'
         }
+
+        // Force ground height every frame
+        this.model.position.y = this.groundHeight
 
         if (this.currentAction != play) {
             const toPlay = this.animationsMap.get(play)
@@ -102,6 +107,7 @@ export class CharacterControls {
             const moveZ = this.walkDirection.z * velocity * delta
             this.model.position.x += moveX
             this.model.position.z += moveZ
+            this.model.position.y = this.groundHeight
             this.updateCameraTarget(moveX, moveZ)
         }
     }

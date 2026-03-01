@@ -2,7 +2,8 @@ import * as THREE from 'three'
 
 const INTERACTION_RADIUS = 8   // distance at which alien stops and faces player
 const STOP_RESUME_DELAY = 3    // seconds to wait after player leaves before wandering
-const AVOID_RADIUS = 12        // new walk targets will never be picked inside this radius of the player
+const AVOID_RADIUS = 4         // walk targets avoid this radius around the player
+const ROAM_RADIUS = 8          // NPCs wander within this radius of their spawn point
 
 export class NPC {
     model: THREE.Group
@@ -11,9 +12,10 @@ export class NPC {
     currentAction: string = 'Idle'
     
     // Movement
-    velocity: number = 2
+    velocity: number = 1.2
     direction: THREE.Vector3 = new THREE.Vector3(0, 0, 1)
     targetPosition: THREE.Vector3 = new THREE.Vector3()
+    spawnPosition: THREE.Vector3 = new THREE.Vector3()
     
     // AI Timer
     changeTimer: number = 2
@@ -30,6 +32,7 @@ export class NPC {
         this.mixer = mixer
         this.animationsMap = animationsMap
         this.npcId = npcId
+        this.spawnPosition.copy(model.position)
         
         const firstAction = Array.from(this.animationsMap.values())[0]
         if (firstAction) {
@@ -41,13 +44,15 @@ export class NPC {
     }
 
     private setNewTarget(avoidPos: THREE.Vector3 | null) {
-        // Keep trying until we find a spot that's not too close to the player
+        // Wander within ROAM_RADIUS of spawn point, avoiding the player
         let tries = 0
         do {
+            const angle = Math.random() * Math.PI * 2
+            const dist = Math.random() * ROAM_RADIUS
             this.targetPosition.set(
-                (Math.random() - 0.5) * 40,
+                this.spawnPosition.x + Math.cos(angle) * dist,
                 0,
-                (Math.random() - 0.5) * 40
+                this.spawnPosition.z + Math.sin(angle) * dist
             )
             tries++
         } while (

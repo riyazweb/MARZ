@@ -7,5 +7,6 @@
       "target": "es5",
       "allowJs": true,
       "skipLibCheck": true
-    }
+    },
+    "exclude": ["server.js", "node_modules", "webpack.config.js"]
 }

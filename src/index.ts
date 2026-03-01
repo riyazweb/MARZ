@@ -43,23 +43,139 @@ generateFloor()
 const loadingScreen = document.getElementById('loading-screen');
 const loadingManager = new THREE.LoadingManager();
 
-loadingManager.onLoad = () => {
-    console.log('All assets loaded! Starting simulation...');
-    if (loadingScreen) {
-        loadingScreen.style.opacity = '0';
+// ─── Cinematic intro — pairs of sentences shown together ───
+const introPairs = [
+    "THE YEAR IS 2164 AD.\n150 YEARS OF NEGLECT HAVE FINALLY BROKEN EARTH.",
+    "THE OCEANS ARE BLACK. THE AIR IS IRON.\nHUMANITY'S FINAL HOPE RESTS ON A SINGLE SIGNAL FROM MARS.",
+    "YOU ARE RYAN, AN ASTRONAUT ON A SUICIDE MISSION\nTO FIND THE ANCESTRAL MARTIAN CORE.",
+    "YOU CRASHED. YOUR SHIP IS SCRAP.\nBUT YOU ARE NOT ALONE.",
+    "IF YOU CAN CONVINCE THEM, YOU MIGHT SAVE EARTH.\nIF YOU FAIL, YOU WILL BE THE LAST HUMAN TO EVER BREATHE."
+];
+
+let introFinished = false;
+let assetsLoaded = false;
+let selectedDifficulty = 'easy';
+
+// Show title screen FIRST, hide everything else
+const titleScreen = document.getElementById('title-screen');
+const diffScreen = document.getElementById('difficulty-screen');
+if (titleScreen) titleScreen.style.display = 'flex';
+if (diffScreen) diffScreen.style.display = 'none';
+if (loadingScreen) loadingScreen.style.display = 'none';
+
+// START button → show difficulty screen
+const startBtn = document.getElementById('start-btn');
+if (startBtn) {
+    startBtn.addEventListener('click', () => {
+        if (titleScreen) {
+            titleScreen.style.opacity = '0';
+            setTimeout(() => {
+                titleScreen.style.display = 'none';
+                if (diffScreen) diffScreen.style.display = 'flex';
+            }, 800);
+        }
+    });
+}
+
+function dismissLoadingScreen() {
+    if (!loadingScreen) return;
+    introFinished = true;
+    loadingScreen.style.opacity = '0';
+    setTimeout(() => { loadingScreen.style.display = 'none'; }, 1500);
+}
+
+function startGameWithDifficulty(diff: string) {
+    selectedDifficulty = diff;
+    if (diffScreen) {
+        // Show loading screen BEHIND difficulty screen FIRST so game world never flashes
+        if (loadingScreen) {
+            loadingScreen.style.display = 'flex';
+            loadingScreen.style.opacity = '1';
+        }
+        diffScreen.style.opacity = '0';
         setTimeout(() => {
-            loadingScreen.style.display = 'none';
-        }, 1000); // Wait for transition to finish
+            diffScreen.style.display = 'none';
+            runCinematicIntro();
+        }, 800);
     }
+    // Tell server which difficulty
+    fetch('http://localhost:3001/api/set-difficulty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ difficulty: diff })
+    }).catch(() => {});
+}
+
+// Wire up difficulty buttons
+document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        startGameWithDifficulty((btn as HTMLElement).getAttribute('data-diff') || 'easy');
+    });
+});
+
+function runCinematicIntro() {
+    const sentenceEl = document.getElementById('intro-sentence');
+    const skipBtn = document.getElementById('skip-intro');
+    if (!sentenceEl) return;
+
+    let idx = 0;
+    let cancelled = false;
+
+    function showNext() {
+        if (cancelled || idx >= introPairs.length) {
+            sentenceEl.classList.remove('visible');
+            const waitForAssets = () => {
+                if (assetsLoaded) { dismissLoadingScreen(); }
+                else { setTimeout(waitForAssets, 200); }
+            };
+            setTimeout(waitForAssets, 600);
+            return;
+        }
+        sentenceEl.classList.remove('visible');
+        setTimeout(() => {
+            sentenceEl.innerText = introPairs[idx];
+            sentenceEl.classList.add('visible');
+            idx++;
+            setTimeout(showNext, 3500);
+        }, 300);
+    }
+
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => {
+            cancelled = true;
+            const waitForAssets = () => {
+                if (assetsLoaded) { dismissLoadingScreen(); }
+                else {
+                    sentenceEl.innerText = 'Loading...';
+                    sentenceEl.classList.add('visible');
+                    setTimeout(waitForAssets, 200);
+                }
+            };
+            waitForAssets();
+        });
+    }
+
+    showNext();
+}
+
+loadingManager.onLoad = () => {
+    console.log('All assets loaded!');
+    assetsLoaded = true;
+    const barContainer = document.getElementById('loading-bar-container');
+    const pctLabel = document.getElementById('loading-pct');
+    if (barContainer) barContainer.style.opacity = '0';
+    if (pctLabel) pctLabel.style.opacity = '0';
 };
 
 loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
-    const text = document.getElementById('loading-text');
-    if (text) {
-        const progress = Math.round((itemsLoaded / itemsTotal) * 100);
-        text.innerText = `PREPARING MARS EXPEDITION... ${progress}%`;
-    }
+    const barFill = document.getElementById('loading-bar-fill');
+    const pctLabel = document.getElementById('loading-pct');
+    const progress = Math.round((itemsLoaded / itemsTotal) * 100);
+    if (barFill) barFill.style.width = `${progress}%`;
+    if (pctLabel) pctLabel.innerText = `LOADING ${progress}%`;
 };
+
+// Intro starts after difficulty selection (see startGameWithDifficulty)
 
 // MODEL WITH ANIMATIONS
 var characterControls: CharacterControls
@@ -87,10 +203,10 @@ new GLTFLoader(loadingManager).load('models/mercenary_astronaut.glb', function (
     characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, camera,  initialAction)
 });
 
-// NPC ALIENS
+// NPC ALIENS — Zorg (alien1) and Xylia (alien2)
 const npcs: NPC[] = []
-const NUM_ALIENS = 2 // Change this value to increase or decrease the number of aliens
-const INTERACTION_DISTANCE = 4 // How close player needs to be to make them stop and look (decreased from 8)
+const NUM_ALIENS = 2
+const INTERACTION_DISTANCE = 4
 
 const loader = new GLTFLoader(loadingManager)
 const spawnNPC = (x: number, z: number, id: string) => {
@@ -102,10 +218,9 @@ const spawnNPC = (x: number, z: number, id: string) => {
         });
         scene.add(model);
 
-        // Ground the alien so feet are on the floor (not clipping under ground)
         model.updateMatrixWorld();
         const alienBox = new THREE.Box3().setFromObject(model);
-        model.position.y -= alienBox.min.y;  // Move up so the bottom strictly touches y=0
+        model.position.y -= alienBox.min.y;
 
         const mixer = new THREE.AnimationMixer(model);
         const animationsMap: Map<string, THREE.AnimationAction> = new Map()
@@ -114,38 +229,16 @@ const spawnNPC = (x: number, z: number, id: string) => {
             animationsMap.set(a.name, mixer.clipAction(a))
         })
 
-        model.scale.set(1, 1, 1); // Normal original size
-        model.position.y = 0; // Mixamo models have feet exactly at y=0 in model space
+        model.scale.set(1, 1, 1);
+        model.position.y = 0;
 
         npcs.push(new NPC(model, mixer, animationsMap, id))
     })
 }
 
-// Spawn the configured number of aliens at random starting positions that are far apart
-const alienSpawnPositions: [number, number][] = []
-for (let i = 0; i < NUM_ALIENS; i++) {
-    let x: number, z: number, tooClose: boolean;
-    let attempts = 0;
-    do {
-        tooClose = false;
-        x = (Math.random() - 0.5) * 50; // Widen the range
-        z = (Math.random() - 0.5) * 50;
-        
-        // Ensure they aren't on top of player (0,0)
-        if (Math.abs(x) < 5 && Math.abs(z) < 5) tooClose = true;
-        
-        // Ensure they are far from each other (at least 15 units)
-        for (const pos of alienSpawnPositions) {
-            const dist = Math.sqrt(Math.pow(x - pos[0], 2) + Math.pow(z - pos[1], 2));
-            if (dist < 15) tooClose = true;
-        }
-        attempts++;
-    } while (tooClose && attempts < 50);
-    
-    alienSpawnPositions.push([x, z]);
-    // Assign unique IDs: alien1, alien2, alien3...
-    spawnNPC(x, z, `alien${i + 1}`);
-}
+// Fixed positions: Zorg and Xylia far from player, on opposite sides of each other
+spawnNPC(-20, -18, 'alien1');  // Zorg — far left
+spawnNPC(18, 16, 'alien2');   // Xylia — far right, opposite side
 
 // ===================================
 // 🎤 VOICE INPUT & CHAT SYSTEM
@@ -154,6 +247,23 @@ const micBtn = document.getElementById('mic-btn');
 const chatContainer = document.getElementById('chat-container');
 const npcNameUI = document.getElementById('npc-name');
 const chatTextUI = document.getElementById('chat-text');
+const thoughtBubble = document.getElementById('thought-bubble');
+const hudOverlay = document.getElementById('hud-overlay');
+const hudText = document.getElementById('hud-text');
+const repValue = document.getElementById('rep-value');
+const repBarFill = document.getElementById('rep-bar-fill') as HTMLElement;
+
+// Unlock audio on first user interaction (browser autoplay policy)
+let audioUnlocked = false;
+const unlockAudio = () => {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    const ctx = new AudioContext();
+    if (ctx.state === 'suspended') ctx.resume();
+    ctx.close();
+};
+document.addEventListener('click', unlockAudio, { once: true });
+document.addEventListener('keydown', unlockAudio, { once: true });
 
 let isRecording = false;
 let recognition: any;
@@ -236,9 +346,10 @@ document.addEventListener('npc-greet', ((e: CustomEvent) => {
     const npcId = e.detail.npcId;
     console.log("NPC Auto Greet:", npcId);
     
-    // We send a hidden context message to trigger the greeting about Mars pollution
-    // The player won't see this text, but the alien will reply to it.
-    sendToBackend(npcId, "", "[You see the human approach. Start telling them the story of how Mars was destroyed by pollution. Warn them to leave. Keep it short.]");
+    const context = npcId === 'alien1'
+        ? "[The human astronaut Ryan approaches. He crashed here seeking the Ancestral Martian Core to save Earth. Greet him and test his sincerity. Keep it short.]"
+        : "[Ryan the astronaut approaches. He needs help to send a signal to Earth from your UFO. Greet him with cautious empathy. Keep it short.]";
+    sendToBackend(npcId, "", context);
 }) as EventListener);
 
 function getClosestNPC(): NPC | null {
@@ -269,8 +380,49 @@ function showChat(name: string, text: string) {
     }
 }
 
+function showThought(thought: string) {
+    if (!thoughtBubble || !thought) return;
+    thoughtBubble.innerText = `💭 "${thought}"`;
+    thoughtBubble.style.display = 'block';
+    thoughtBubble.style.opacity = '1';
+    // Sits just above the chat container (chat = top:20px, thought = top:20px → we push chat down temporarily)
+    if (chatContainer) chatContainer.style.top = '58px';
+    setTimeout(() => {
+        thoughtBubble.style.opacity = '0';
+        setTimeout(() => {
+            thoughtBubble.style.display = 'none';
+            if (chatContainer) chatContainer.style.top = '20px';
+        }, 500);
+    }, 4000);
+}
+
+function showHUD(lines: string[]) {
+    if (!hudOverlay || !hudText) return;
+    hudOverlay.style.display = 'block';
+    const content = lines.map(l => `> ${l}`).join('\n');
+    hudText.innerText = content;
+    (hudText as HTMLElement).style.opacity = '1';
+    setTimeout(() => {
+        (hudText as HTMLElement).style.opacity = '0';
+        setTimeout(() => { hudOverlay.style.display = 'none'; }, 400);
+    }, 3500);
+}
+
+function updateReputation(score: number) {
+    if (repValue) repValue.innerText = String(score);
+    if (repBarFill) {
+        repBarFill.style.width = `${score}%`;
+        if (score < 30) repBarFill.style.background = '#8b3a1a';
+        else if (score < 60) repBarFill.style.background = '#c2703a';
+        else repBarFill.style.background = '#d3843a';
+    }
+}
+
 async function sendToBackend(npcId: string, playerMessage: string, contextOverride?: string) {
     if (playerMessage) showChat("You", playerMessage); // Show what you said first
+
+    // Show HUD while waiting for AI
+    showHUD(['NEURAL LINK ESTABLISHED...', `CONNECTING TO ${npcId.toUpperCase()}...`, 'DECODING ALIEN THOUGHTS...']);
 
     try {
         const payload = {
@@ -292,13 +444,34 @@ async function sendToBackend(npcId: string, playerMessage: string, contextOverri
             return;
         }
 
+        // Show AI thought immediately (before audio plays)
+        if (data.thought) showThought(data.thought);
+
+        // Show HUD with live AI JSON telemetry
+        showHUD([
+            `[NPC: ${data.npcName}]`,
+            `EMOTION: ${(data.emotion || 'neutral').toUpperCase()}`,
+            `REPUTATION: ${data.reputation ?? '?'}/100`
+        ]);
+
+        // Update reputation bar
+        if (typeof data.reputation === 'number') updateReputation(data.reputation);
+
+        // Check if trust unlocked the core
+        if (data.coreUnlocked && !coreUnlocked) {
+            coreUnlocked = true;
+            showChat("System", "⚡ The aliens trust you. You can now use the UFO transmitter.");
+        }
+
         // Show Alien Response
         showChat(data.npcName, data.dialogue);
 
         // Play Audio
         if (data.audio) {
             const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
-            audio.play();
+            audio.play().catch(err => {
+                console.warn('Audio autoplay blocked (interact with the page first):', err);
+            });
         }
 
     } catch (error) {
@@ -307,9 +480,272 @@ async function sendToBackend(npcId: string, playerMessage: string, contextOverri
     }
 }
 
-function speakText(text: string) {
-    const utter = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utter);
+function speakText(_text: string) {
+    // Removed — using ElevenLabs TTS only
+}
+
+// ===================================
+// GAME STATE
+// ===================================
+let coreUnlocked = false;
+let dataExtracted = false;
+let extractedCoordinates = '';
+let missionComplete = false;
+
+// ===================================
+// 📷 SCANNER — 'C' key
+// ===================================
+interface ScannableObject {
+    name: string
+    description: string
+    scanId: string  // 'perseverance' | 'curiosity' | 'ufo' | etc
+    position: THREE.Vector3
+}
+const scannableObjects: ScannableObject[] = [];
+const SCAN_DISTANCE = 10;
+
+function scanNearbyObject() {
+    if (!characterControls || missionComplete) return;
+    const playerPos = characterControls.model.position;
+    let closest: ScannableObject | null = null;
+    let minDist = Infinity;
+
+    scannableObjects.forEach(obj => {
+        const dist = playerPos.distanceTo(obj.position);
+        if (dist < SCAN_DISTANCE && dist < minDist) {
+            minDist = dist;
+            closest = obj;
+        }
+    });
+
+    if (!closest) {
+        showChat('Scanner', 'No objects nearby to scan. Get closer to something.');
+        return;
+    }
+
+    const obj = closest as ScannableObject;
+    showHUD([`[VISUAL SCANNER]`, `TARGET: ${obj.name}`, `DISTANCE: ${minDist.toFixed(1)}m`]);
+
+    if (obj.scanId === 'ufo') {
+        if (coreUnlocked && dataExtracted) {
+            showChat('Scanner', 'UFO transmitter ready. Press [E] to open the terminal and send signal.');
+        } else if (coreUnlocked) {
+            showChat('Scanner', 'UFO transmitter unlocked. But you need data first — find Perseverance rover.');
+        } else {
+            showChat('Scanner', 'Alien UFO. You need the aliens\' trust before you can use this.');
+        }
+    } else if (obj.scanId === 'curiosity') {
+        showChat('Scanner', 'NASA Curiosity. Old hardware. Not useful for sending signals.');
+    } else if (obj.scanId === 'perseverance') {
+        if (dataExtracted) {
+            showChat('Scanner', 'Perseverance. Data already extracted. Go to the UFO.');
+        } else if (coreUnlocked) {
+            showChat('Scanner', 'NASA Perseverance. Hold [E] to extract signal data.');
+        } else {
+            showChat('Scanner', 'NASA Perseverance. You need the aliens\' trust before you can extract data.');
+        }
+    } else {
+        showChat('Scanner', `${obj.name}: ${obj.description}`);
+    }
+}
+
+document.addEventListener('keydown', (event) => {
+    if ((event.key === 'c' || event.key === 'C') && !event.ctrlKey && !event.metaKey) {
+        scanNearbyObject();
+    }
+});
+
+// ===================================
+// ⏳ EXTRACTION — Hold 'E'
+// ===================================
+const extractOverlay = document.getElementById('extract-overlay');
+const extractCircle = document.querySelector('#extract-ring svg circle') as SVGCircleElement | null;
+const extractLabel = document.getElementById('extract-label');
+const earthComm = document.getElementById('earth-comm');
+const coordInput = document.getElementById('coord-input') as HTMLInputElement | null;
+const sendSignalBtn = document.getElementById('send-signal-btn');
+const missionCompleteScreen = document.getElementById('mission-complete');
+
+let eHeld = false;
+let extractProgress = 0;
+const EXTRACT_DURATION = 3; // seconds to hold E
+
+function getNearestScannable(): ScannableObject | null {
+    if (!characterControls) return null;
+    const playerPos = characterControls.model.position;
+    let closest: ScannableObject | null = null;
+    let minDist = Infinity;
+    scannableObjects.forEach(obj => {
+        const dist = playerPos.distanceTo(obj.position);
+        if (dist < SCAN_DISTANCE && dist < minDist) {
+            minDist = dist;
+            closest = obj;
+        }
+    });
+    return closest;
+}
+
+document.addEventListener('keydown', async (event) => {
+    if (event.key === 'e' || event.key === 'E') {
+        if (event.repeat || missionComplete) return;
+        const nearest = getNearestScannable();
+        if (!nearest) return;
+
+        // Always sync game state from server before checking
+        try {
+            const stateRes = await fetch('http://localhost:3001/api/game-state');
+            const state = await stateRes.json();
+            coreUnlocked = state.coreUnlocked;
+            dataExtracted = state.dataExtracted;
+            if (typeof state.reputation === 'number') updateReputation(state.reputation);
+        } catch (e) { /* use local state */ }
+
+        if (nearest.scanId === 'perseverance' && !dataExtracted) {
+            if (!coreUnlocked) {
+                showChat('System', 'The aliens don\'t trust you yet. Talk to them first.');
+                return;
+            }
+            eHeld = true;
+            extractProgress = 0;
+            if (extractOverlay) extractOverlay.style.display = 'flex';
+            if (extractLabel) extractLabel.innerText = 'EXTRACTING...';
+        } else if (nearest.scanId === 'ufo' && coreUnlocked && dataExtracted) {
+            // Open Earth-Comm Terminal
+            if (earthComm) {
+                earthComm.style.display = 'block';
+                if (coordInput) coordInput.value = extractedCoordinates;
+                coordInput?.focus();
+            }
+        } else if (nearest.scanId === 'ufo' && coreUnlocked && !dataExtracted) {
+            showChat('System', 'Go find the Perseverance rover first. Use [C] to scan and [E] to extract data from it.');
+        } else if (nearest.scanId === 'ufo' && !coreUnlocked) {
+            showChat('System', 'The aliens don\'t trust you yet. Talk to them first.');
+        } else if (nearest.scanId === 'perseverance' && dataExtracted) {
+            showChat('System', 'Data already extracted. Go to the UFO to transmit the signal.');
+        }
+    }
+});
+
+document.addEventListener('keyup', (event) => {
+    if (event.key === 'e' || event.key === 'E') {
+        eHeld = false;
+        extractProgress = 0;
+        if (extractOverlay) extractOverlay.style.display = 'none';
+        if (extractCircle) extractCircle.style.strokeDashoffset = '314';
+    }
+});
+
+// Update extraction progress in animation loop (called from animate())
+function updateExtraction(delta: number) {
+    if (!eHeld || dataExtracted) return;
+    extractProgress += delta;
+    const pct = Math.min(extractProgress / EXTRACT_DURATION, 1);
+    if (extractCircle) {
+        extractCircle.style.strokeDashoffset = String(314 * (1 - pct));
+    }
+    if (extractLabel) extractLabel.innerText = `EXTRACTING ${Math.round(pct * 100)}%`;
+
+    if (pct >= 1) {
+        eHeld = false;
+        if (extractOverlay) extractOverlay.style.display = 'none';
+        completeExtraction();
+    }
+}
+
+async function completeExtraction() {
+    showHUD(['[DATA EXTRACTION]', 'SYNCING WITH PERSEVERANCE...', 'DOWNLOADING MARTIAN COLLAPSE LOGS...']);
+    try {
+        const res = await fetch('http://localhost:3001/api/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+            dataExtracted = true;
+            extractedCoordinates = data.coordinates || '';
+            showChat('Perseverance', data.message);
+            showHUD(['[EXTRACTION COMPLETE]', `COORDS: ${extractedCoordinates}`, 'GO TO UFO TO TRANSMIT']);
+        } else {
+            showChat('System', data.message);
+        }
+    } catch (err) {
+        showChat('System', 'Extraction failed. Is the server running?');
+    }
+}
+
+// ===================================
+// 📡 EARTH-COMM TERMINAL
+// ===================================
+if (sendSignalBtn) {
+    sendSignalBtn.addEventListener('click', async () => {
+        const coords = coordInput?.value || '';
+        if (earthComm) earthComm.style.display = 'none';
+
+        showHUD(['[TRANSMITTING]', 'LOCKING DEEP SPACE FREQUENCY...', 'BEAMING SIGNAL TO EARTH...']);
+
+        try {
+            const res = await fetch('http://localhost:3001/api/send-signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ coordinates: coords })
+            });
+            const data = await res.json();
+            if (data.success) {
+                triggerEnding(data.radioMessage);
+            } else {
+                showChat('System', data.message);
+            }
+        } catch (err) {
+            showChat('System', 'Transmission failed.');
+        }
+    });
+}
+
+// Close earth-comm on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && earthComm) earthComm.style.display = 'none';
+});
+
+// ===================================
+// 🎬 ENDING SEQUENCE
+// ===================================
+function triggerEnding(radioMessage: string) {
+    missionComplete = true;
+
+    // Flash white beam effect
+    const beam = new THREE.PointLight(0xffffff, 5, 100);
+    beam.position.set(-8, 20, -10);
+    scene.add(beam);
+
+    // Fade NPCs to dust over 4 seconds
+    npcs.forEach(npc => {
+        let fadeStart = Date.now();
+        const fadeInterval = setInterval(() => {
+            const elapsed = (Date.now() - fadeStart) / 4000;
+            npc.model.traverse((child: any) => {
+                if (child.isMesh && child.material) {
+                    child.material.transparent = true;
+                    child.material.opacity = Math.max(0, 1 - elapsed);
+                }
+            });
+            if (elapsed >= 1) {
+                clearInterval(fadeInterval);
+                scene.remove(npc.model);
+            }
+        }, 50);
+    });
+
+    // Radio crackle after 3 seconds
+    setTimeout(() => {
+        showChat('Earth Radio', radioMessage);
+        speakText(radioMessage);
+    }, 3000);
+
+    // Show mission complete screen after 8 seconds
+    setTimeout(() => {
+        if (missionCompleteScreen) missionCompleteScreen.style.display = 'flex';
+    }, 8000);
 }
 
 // WORLD OBJECTS — scattered around behind/around the player spawn
@@ -318,14 +754,17 @@ const objectLoader = new GLTFLoader(loadingManager)
 interface ObjectConfig {
     file: string
     scale: number
-    y: number  // manual y offset if needed
+    y: number
+    displayName: string
+    description: string
+    scanId: string
 }
 
 const worldObjects: ObjectConfig[] = [
-    { file: 'objects/ufo.glb',                                   scale: 0.55,  y: 0 },
-    { file: 'objects/starship_mk1.glb',                          scale: 0.075, y: 0 },
-    { file: 'objects/perseverance_-_nasa_mars_landing_2021.glb', scale: 0.82,  y: 0 },
-    { file: 'objects/mars_rover.glb',                            scale: 0.04,  y: 0 },
+    { file: 'objects/ufo.glb',                                   scale: 0.55,  y: 0, scanId: 'ufo',          displayName: 'Alien UFO', description: 'An alien spacecraft with a transmitter that can send signals to Earth.' },
+    { file: 'objects/starship_mk1.glb',                          scale: 0.055, y: 4, scanId: 'starship',     displayName: 'Ryan\'s Crashed Ship', description: 'Your ship. Destroyed on landing. There is no going back.' },
+    { file: 'objects/perseverance_-_nasa_mars_landing_2021.glb', scale: 0.82,  y: 0, scanId: 'perseverance', displayName: 'NASA Perseverance Rover', description: 'NASA Perseverance. High-gain antenna detected. Can sync with the Martian Core.' },
+    { file: 'objects/mars_rover.glb',                            scale: 0.04,  y: 0, scanId: 'curiosity',    displayName: 'NASA Curiosity Rover', description: 'NASA Curiosity. Outdated hardware. Cannot amplify the Martian Core signal.' },
 ]
 
 // Fixed spawn positions scattered around the map (not on top of player spawn at 0,0)
@@ -345,6 +784,14 @@ worldObjects.forEach((cfg, index) => {
             if (child.isMesh) { child.castShadow = true; child.receiveShadow = true }
         })
         scene.add(obj)
+
+        // Register for C-key scanning
+        scannableObjects.push({
+            name: cfg.displayName,
+            description: cfg.description,
+            scanId: cfg.scanId,
+            position: obj.position
+        })
     }, undefined, function (err) {
         console.warn('Could not load object:', cfg.file, err)
     })
@@ -429,6 +876,7 @@ function animate() {
         characterControls.update(mixerUpdateDelta, keysPressed);
     }
     npcs.forEach(npc => npc.update(mixerUpdateDelta, characterControls ? characterControls.model.position : undefined, INTERACTION_DISTANCE))
+    updateExtraction(mixerUpdateDelta);
     orbitControls.update()
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
