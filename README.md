@@ -31,6 +31,9 @@ This is what the **future of gaming** looks like:
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/41d3ef63-2505-4c26-9aab-b4a3b6563121" />
 
 
+## DEMO
+[![Watch the Demo](https://img.youtube.com/vi/wLuUAG_bVFY/0.jpg)](https://www.youtube.com/watch?v=wLuUAG_bVFY)
+
 ## Features
 - **🧠 AI-Powered NPC Dialogue — Aliens respond using Mistral AI (mistral-large-latest). Every response is unique. No two conversations are ever the same.**
 - **🎙️ Voice Input — Web Speech API converts your speech to text in real-time. Speak naturally — the alien hears every word.**
