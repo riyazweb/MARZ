@@ -35,14 +35,19 @@ This is what the **future of gaming** looks like:
 
 [![Watch the Demo](https://img.youtube.com/vi/wLuUAG_bVFY/0.jpg)](https://www.youtube.com/watch?v=wLuUAG_bVFY)
 
+### 🏆 Hackathon Challenges & Integrations  
 
-### 🏆 Hackathon Challenges
+🎮 **Supercell**  
+MARZ is a future AI game prototype. We replaced fixed dialogue trees with a Generative AI engine where NPCs think, share hive-mind memory, and react dynamically.  
 
-*   🎮 **Supercell (Gaming Innovation):** MARZ is a prototype for the future of gaming. We replaced hard-coded dialogue trees with a Generative AI Game Engine. The NPCs think, share a "Hive-Mind" memory, and react to the player dynamically, fitting Supercell's vision for deep, innovative game mechanics.
-*   🎙️ **ElevenLabs (Voice API):** We integrated ElevenLabs to give our alien NPCs real, emotional voices. Instead of just reading text on a screen, players can hear the anger, sadness, or hope in the aliens' voices in real-time, making the 3D world deeply immersive.
-*   🤗 **Hugging Face:** We designed our AI architecture around Mistral's ecosystem. Due to local GPU hardware constraints during the 34-hour sprint, we utilized the browser's native Web Speech API for ultra-fast voice-to-text input instead of running heavy local audio models (like Voxtral). However, our system is built to seamlessly scale using Hugging Face infrastructure in the future.
-*   ✨ **Mistral Vibe:** We captured the ultimate "Mistral Vibe" by pushing the model beyond a simple text chatbot. By forcing Mistral Large into strict JSON mode, the AI acts as the brain of the game, actively controlling the emotional "vibe" of the characters and the dynamic state of the 3D world.
+🎙️ **ElevenLabs**  
+Alien NPCs speak with real emotional voices. Players hear anger, sadness, and hope in real time, making the world immersive.  
 
+🤗 **Hugging Face + Voxtral**  
+Architecture is built around Mistral’s ecosystem. We planned to use Voxtral for speech-to-text, but due to GPU limits in the 34-hour sprint, we used the browser Web Speech API for ultra-fast input. The system is ready to scale with Voxtral on Hugging Face infrastructure.  
+
+✨ **Mistral Vibe**  
+Mistral Large runs in strict JSON mode as the brain of the game, controlling emotions and the dynamic 3D world state.  
 
 ## Features
 - **🧠 AI-Powered NPC Dialogue — Aliens respond using Mistral AI (mistral-large-latest). Every response is unique. No two conversations are ever the same.**
