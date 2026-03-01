@@ -1,6 +1,6 @@
 # MARSZ — Last Hope
 
-**A 3D MarsZ exploration game where you talk to AI aliens using your voice to save Earth.**
+**A 3D Marsz exploration game where you talk to AI aliens using your voice to save Earth.**
 
 > The year is 2164 AD. Earth is dying. You are Ryan, an astronaut who crash-landed on Mars. Two alien survivors live here — Zorg and Xylia. Talk to them, earn their trust, and send a signal back to Earth before it's too late.
 
